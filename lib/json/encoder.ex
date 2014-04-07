@@ -20,6 +20,8 @@ defmodule JSON.Encode do
 end
 
 defprotocol JSON.Encoder do
+  @fallback_to_any true
+
   def to_json(self, options)
 end
 
@@ -198,5 +200,15 @@ end
 defimpl JSON.Encoder, for: HashSet do
   def to_json(self, _options) do
     HashSet.to_list(self)
+  end
+end
+
+defimpl JSON.Encoder, for: Any do
+  def to_json(%{ __struct__: _ } = self, options) do
+    JSON.Encoder.Map.to_json(Map.delete(self, :__struct__), options)
+  end
+
+  def to_json(self, _options) do
+    raise(Protocol.UndefinedError, protocol: @protocol, value: self)
   end
 end

@@ -79,7 +79,7 @@ defmodule JSON.Parser do
   end
 
   defp object_pairs("}" <> rest, []) do
-    { :maps.from_list([]), rest }
+    { :maps.new, rest }
   end
 
   defp object_pairs(other, _), do: syntax_error(other)

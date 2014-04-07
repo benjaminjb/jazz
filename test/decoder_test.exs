@@ -47,7 +47,7 @@ defmodule DecoderTest do
   end
 
   test "decodes arrays correctly" do
-    assert JSON.decode!(~S/[1,2,3]/)                       == [1, 2, 3]
+    assert JSON.decode!(~S/[1,2,3]/) == [1, 2, 3]
     assert JSON.decode!(~S/[{"lol":"wut"},{"omg":"wut"}]/, keys: :atoms) == [%{ :lol => "wut" }, %{ :omg => "wut" }]
   end
 

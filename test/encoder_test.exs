@@ -7,8 +7,12 @@ defmodule EncoderTest do
     defstruct [:a, :b]
   end
 
-  defimpl JSON.Encoder, for: Foo do
-    def to_json(%Foo{ :a => a, :b => b }, _) do
+  defmodule Bar do
+    defstruct [:a, :b]
+  end
+
+  defimpl JSON.Encoder, for: Bar do
+    def to_json(%Bar{ :a => a, :b => b }, _) do
       %{ :data => [a, b] }
     end
   end
@@ -40,6 +44,7 @@ defmodule EncoderTest do
   end
 
   test "encodes structs correctly" do
-    assert JSON.encode!(%Foo{ :a => 2, :b => 3 }) == ~S/{"data":[2,3]}/
+    assert JSON.encode!(%Foo{ :a => 2, :b => 3 }) == ~S/{"a":2,"b":3}/
+    assert JSON.encode!(%Bar{ :a => 2, :b => 3 }) == ~S/{"data":[2,3]}/
   end
 end
