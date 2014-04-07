@@ -2,7 +2,7 @@
 #                  Version 2, December 2004
 #
 #          DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-# TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION 
+# TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 #
 # 0. You just DO WHAT THE FUCK YOU WANT TO.
 
@@ -29,36 +29,42 @@ defmodule JSON.Decode do
   @spec transform(term, Keyword.t) :: term
   def transform(parsed, options \\ [])
 
-  def transform(parsed, [keys: :atoms]) when parsed |> is_list do
-    Enum.map parsed, fn
-      elem when elem |> is_list ->
-        transform(elem, keys: :atoms)
-
-      { name, value } when value |> is_list ->
+  def transform(parsed, [keys: :atoms]) when parsed |> is_map do
+    Enum.map(parsed, fn
+      { name, value } when is_map(value) or is_list(value) ->
         { binary_to_atom(name), transform(value, keys: :atoms) }
 
       { name, value } ->
         { binary_to_atom(name), value }
+    end) |> Map.new
+  end
+
+  def transform(parsed, [keys: :atoms!]) when parsed |> is_map do
+    Enum.map(parsed, fn
+      { name, value } when is_map(value) or is_list(value) ->
+        { binary_to_existing_atom(name), transform(value, keys: :atoms) }
+
+      { name, value } ->
+        { binary_to_existing_atom(name), value }
+    end) |> Map.new
+  end
+
+  def transform(parsed, [keys: keys]) when parsed |> is_list do
+    Enum.map parsed, fn
+      elem when is_map(elem) or is_list(elem) ->
+        transform(elem, keys: keys)
 
       value ->
         value
     end
   end
 
-  def transform(parsed, [keys: :atoms!]) when parsed |> is_list do
-    Enum.map parsed, fn
-      elem when elem |> is_list ->
-        transform(elem, keys: :atoms!)
+  def transform(parsed, [keys: nil]) do
+    parsed
+  end
 
-      { name, value } when is_list(value) ->
-        { binary_to_existing_atom(name), transform(value, keys: :atoms!) }
-
-      { name, value } ->
-        { binary_to_existing_atom(name), value }
-
-      value ->
-        value
-    end
+  def transform(parsed, [as: nil]) do
+    parsed
   end
 
   def transform(parsed, []) do
@@ -70,24 +76,22 @@ defmodule JSON.Decode do
 
     case Keyword.fetch!(options, :as) do
       as when as |> is_atom ->
-        JSON.Decoder.from_json({ as, parsed, options })
-
-      [as] when as |> is_atom ->
-        Enum.map parsed, fn parsed ->
-          JSON.Decoder.from_json({ as, parsed, options })
-        end
+        JSON.Decoder.from_json({ as, transform(parsed, keys: keys), options })
 
       as when as |> is_list ->
-        as = Enum.map as, fn { name, value } ->
-          { to_string(name), value }
+        as = Enum.map as, fn { name, options } ->
+          { to_string(name), options }
         end
 
         Enum.map parsed, fn { name, value } ->
           value = cond do
-            spec = as[name] ->
-              transform(value, Keyword.put(options, :as, spec))
+            (spec = as[name]) && is_atom(spec) ->
+              transform(value, as: spec)
 
-            keys && value |> is_list ->
+            (spec = as[name]) && is_list(spec) ->
+              transform(value, as: spec[:as], keys: spec[:keys])
+
+            keys && (is_map(value) || is_list(value)) ->
               transform(value, keys: keys)
 
             true ->
@@ -113,7 +117,7 @@ end
 
 defimpl JSON.Decoder, for: Tuple do
   def from_json({ name, parsed, _ }) do
-    name.new(parsed)
+    Map.put(parsed, :__struct__, name)
   end
 end
 

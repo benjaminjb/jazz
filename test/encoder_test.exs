@@ -3,12 +3,13 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule EncoderTest do
   use ExUnit.Case, async: true
 
-  defrecord Foo, [:a, :b]
-  defrecord Bar, [:a, :b]
+  defmodule Foo do
+    defstruct [:a, :b]
+  end
 
-  defimpl JSON.Encoder, for: Bar do
-    def to_json(Bar[a: a, b: b], _) do
-      [data: [a, b]]
+  defimpl JSON.Encoder, for: Foo do
+    def to_json(%Foo{ :a => a, :b => b }, _) do
+      %{ :data => [a, b] }
     end
   end
 
@@ -21,7 +22,7 @@ defmodule EncoderTest do
   test "encodes strings correctly" do
     assert JSON.encode!("lol")    == ~S/"lol"/
     assert JSON.encode!("\\\r\n") == ~S/"\\\r\n"/
-    assert JSON.encode!("æß") == ~S/"æß"/
+    assert JSON.encode!("æß")     == ~S/"æß"/
 
     assert JSON.encode!("lol", escape: :unicode) == ~S/"lol"/
     assert JSON.encode!("æß", escape: :unicode)  == ~S/"\u00E6\u00DF"/
@@ -29,17 +30,16 @@ defmodule EncoderTest do
   end
 
   test "encodes objects correctly" do
-    assert JSON.encode!([lol: "wut"])        == ~S/{"lol":"wut"}/
-    assert JSON.encode!([lol: [omg: "wut"]]) == ~S/{"lol":{"omg":"wut"}}/
+    assert JSON.encode!(%{ :lol => "wut" }) == ~S/{"lol":"wut"}/
+    assert JSON.encode!(%{ :lol => %{ :omg => "wut" } }) == ~S/{"lol":{"omg":"wut"}}/
   end
 
   test "encodes arrays correctly" do
-    assert JSON.encode!([1, 2, 3])                    == ~S/[1,2,3]/
-    assert JSON.encode!([[lol: "wut"], [omg: "wut"]]) == ~S/[{"lol":"wut"},{"omg":"wut"}]/
+    assert JSON.encode!([1, 2, 3]) == ~S/[1,2,3]/
+    assert JSON.encode!([%{ :lol => "wut" }, %{ :omg => "wut" }]) == ~S/[{"lol":"wut"},{"omg":"wut"}]/
   end
 
-  test "encodes records correctly" do
-    assert JSON.encode!(Foo[a: 2, b: 3]) == ~S/{"a":2,"b":3}/
-    assert JSON.encode!(Bar[a: 2, b: 3]) == ~S/{"data":[2,3]}/
+  test "encodes structs correctly" do
+    assert JSON.encode!(%Foo{ :a => 2, :b => 3 }) == ~S/{"data":[2,3]}/
   end
 end

@@ -2,7 +2,7 @@
 #                  Version 2, December 2004
 #
 #          DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-# TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION 
+# TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 #
 # 0. You just DO WHAT THE FUCK YOU WANT TO.
 
@@ -24,6 +24,32 @@ defprotocol JSON.Encoder do
 end
 
 defimpl JSON.Encoder, for: List do
+  def to_json([], _) do
+    { "[]" }
+  end
+
+  def to_json(self, options) do
+    { encode_array(self, options, options[:pretty]) }
+  end
+
+  defp encode_array(self, options, pretty) when pretty == true do
+    [first | rest] = Enum.map self, fn element ->
+      [", ", JSON.encode!(element, options)]
+    end
+
+    ["[", tl(first), rest, "]"] |> iolist_to_binary
+  end
+
+  defp encode_array(self, options, pretty) when pretty == false or pretty == nil do
+    [first | rest] = Enum.map self, fn element ->
+      [",", JSON.encode!(element, options)]
+    end
+
+    ["[", tl(first), rest, "]"] |> iolist_to_binary
+  end
+end
+
+defimpl JSON.Encoder, for: Map do
   @compile { :inline, offset: 1, offset: 2, indentation: 1, spaces: 1 }
 
   defp offset(options) do
@@ -42,32 +68,8 @@ defimpl JSON.Encoder, for: List do
     String.duplicate(" ", number)
   end
 
-  defp object?([{ head, _ } | _]) when not is_binary(head) and not is_atom(head) do
-    false
-  end
-
-  defp object?([{ _, _ } | rest]) do
-    object?(rest)
-  end
-
-  defp object?([]) do
-    true
-  end
-
-  defp object?(_) do
-    false
-  end
-
-  def to_json([], _) do
-    { "[]" }
-  end
-
   def to_json(self, options) do
-    { if object?(self) do
-      encode_object(self, options, options[:pretty])
-    else
-      encode_array(self, options, options[:pretty])
-    end }
+    { encode_object(self, options, options[:pretty]) }
   end
 
   defp encode_object(self, options, pretty) when pretty == true do
@@ -90,22 +92,6 @@ defimpl JSON.Encoder, for: List do
     end
 
     ["{", tl(first), rest, "}"] |> iolist_to_binary
-  end
-
-  defp encode_array(self, options, pretty) when pretty == true do
-    [first | rest] = Enum.map self, fn element ->
-      [", ", JSON.encode!(element, options)]
-    end
-
-    ["[", tl(first), rest, "]"] |> iolist_to_binary
-  end
-
-  defp encode_array(self, options, pretty) when pretty == false or pretty == nil do
-    [first | rest] = Enum.map self, fn element ->
-      [",", JSON.encode!(element, options)]
-    end
-
-    ["[", tl(first), rest, "]"] |> iolist_to_binary
   end
 end
 
@@ -200,12 +186,6 @@ end
 defimpl JSON.Encoder, for: [Integer, Float] do
   def to_json(self, _) do
     { to_string(self) }
-  end
-end
-
-defimpl JSON.Encoder, for: Tuple do
-  def to_json(self, _options) do
-    self.to_keywords
   end
 end
 
