@@ -70,6 +70,10 @@ defimpl JSON.Encoder, for: Map do
     String.duplicate(" ", number)
   end
 
+  def to_json(self, _) when map_size(self) == 0 do
+    { "{}" }
+  end
+
   def to_json(self, options) do
     { encode_object(self, options, options[:pretty]) }
   end
