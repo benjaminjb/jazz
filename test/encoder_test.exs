@@ -34,11 +34,13 @@ defmodule EncoderTest do
   end
 
   test "encodes objects correctly" do
+    assert JSON.encode!(%{}) == "{}"
     assert JSON.encode!(%{lol: "wut"}) == ~S/{"lol":"wut"}/
     assert JSON.encode!(%{lol: %{omg: "wut"}}) == ~S/{"lol":{"omg":"wut"}}/
   end
 
   test "encodes arrays correctly" do
+    assert JSON.encode!([]) == "[]"
     assert JSON.encode!([1, 2, 3]) == ~S/[1,2,3]/
     assert JSON.encode!([%{lol: "wut"}, %{omg: "wut"}]) == ~S/[{"lol":"wut"},{"omg":"wut"}]/
   end
